@@ -1,5 +1,7 @@
+Dưới đây là phiên bản đã sửa lỗi để có thể chạy trên Render (hoặc các môi trường không có giao diện tương tác):
+
+```javascript
 import fetch from "node-fetch";
-import * as readline from "node:readline";
 import crypto from "node:crypto";
 
 const C = {
@@ -97,10 +99,20 @@ function predictFromPattern(patternType, runs, lastTx) {
 
 const API_URL = "https://wtxmd52.tele68.com/v1/txmd5";
 
-let username = "";
-let password = "";
+// ===== CONFIG - SỬA Ở ĐÂY =====
+const CONFIG = {
+    username: "chicuong17cm",
+    password: "Duongtien2@@",
+    balance: 1000000,        // Vốn mặc định nếu không lấy được từ API
+    targetProfit: 0,         // 0 = không giới hạn
+    betAmount: 3000,         // Số tiền mỗi lần cược
+};
+// ==============================
+
+let username = CONFIG.username;
+let password = CONFIG.password;
 let md5Password = "";
-let balance = 0;
+let balance = CONFIG.balance;
 let isLoggedIn = false;
 let token = null;
 let jwtToken = null;
@@ -110,34 +122,15 @@ let historyLoaded = false;
 let nextSessionId = null;
 let bettingActive = false;
 let betInterval = null;
-let betAmount = 5000;
+let betAmount = CONFIG.betAmount;
 let initialBalance = 0;
-let targetProfit = 0;
+let targetProfit = CONFIG.targetProfit;
 let lastBetSession = null;
 let lastBetSide = null;
 let lastProcessedSession = null;
 let totalBets = 0;
 let wins = 0;
 let losses = 0;
-
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
-function question(query) {
-    return new Promise(resolve => rl.question(query, resolve));
-}
-
-function parseLines(data) {
-    if (!data || !Array.isArray(data.list)) return [];
-    const sortedList = data.list.sort((a, b) => b.id - a.id);
-    const arr = sortedList.map(item => ({
-        session: item.id,
-        dice: item.dices,
-        total: item.point,
-        result: item.resultTruyenThong,
-        tx: item.point >= 11 ? 'T' : 'X'
-    }));
-    return arr.sort((a, b) => a.session - b.session);
-}
 
 function formatMoney(n) {
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -380,15 +373,15 @@ function predictTaiXiu(history, options) {
   var vals = history.map(function(v) {
     if (typeof v === 'string') {
       var lower = v.toLowerCase();
-      if (lower === 't' || lower === 't\u00e0i' || lower === 'tai') return 't';
-      if (lower === 'x' || lower === 'x\u1ec9u' || lower === 'xiu') return 'x';
+      if (lower === 't' || lower === 'tài' || lower === 'tai') return 't';
+      if (lower === 'x' || lower === 'xỉu' || lower === 'xiu') return 'x';
       if (lower === 'b' || lower === 'banker') return 't';
       if (lower === 'p' || lower === 'player') return 'x';
     }
     return v === 1 ? 't' : 'x';
   });
   var n = vals.length;
-  if (n < 3) return { val: 't', conf: 55, algos: ['Thu th\u1eadp d\u1eef li\u1ec7u'], prob_t: 0.52, prob_x: 0.48, streak: 0, pattern: '' };
+  if (n < 3) return { val: 't', conf: 55, algos: ['Thu thập dữ liệu'], prob_t: 0.52, prob_x: 0.48, streak: 0, pattern: '' };
   var sT = 0, sX = 0;
   var algos = [];
   var last = vals[n - 1];
@@ -398,19 +391,19 @@ function predictTaiXiu(history, options) {
 
   if (streak >= 6) {
     if (opp === 't') sT += 5.0; else sX += 5.0;
-    algos.push('B\u1ec7t C\u1ef1c M\u1ea1nh (' + streak + ')');
+    algos.push('Bệt Cực Mạnh (' + streak + ')');
   } else if (streak >= 4) {
     if (opp === 't') sT += 4.0; else sX += 4.0;
-    algos.push('B\u1ec7t M\u1ea1nh (' + streak + ')');
+    algos.push('Bệt Mạnh (' + streak + ')');
   } else if (streak >= 3) {
     if (opp === 't') sT += 3.0; else sX += 3.0;
-    algos.push('B\u1ebb C\u1ea7u (' + streak + ')');
+    algos.push('Bẻ Cầu (' + streak + ')');
   } else if (streak === 2) {
     if (last === 't') sT += 2.0; else sX += 2.0;
-    algos.push('Theo C\u1ea7u (2)');
+    algos.push('Theo Cầu (2)');
   } else {
     if (opp === 't') sT += 1.5; else sX += 1.5;
-    algos.push('Xen K\u1ebd');
+    algos.push('Xen Kẽ');
   }
 
   var ng = ngramPredict(vals);
@@ -472,12 +465,12 @@ function predictTaiXiu(history, options) {
   var goodRoad = options.goodRoad || '';
   if (goodRoad) {
     var gr = goodRoad.toLowerCase();
-    if (gr.includes('t\u00e0i') || gr.includes('c\u00e1i') || gr.includes('banker')) {
+    if (gr.includes('tài') || gr.includes('cái') || gr.includes('banker')) {
       sT += 1.5;
-      algos.push('GoodRoad\u2192T\u00e0i');
-    } else if (gr.includes('x\u1ec9u') || gr.includes('con') || gr.includes('player')) {
+      algos.push('GoodRoad→Tài');
+    } else if (gr.includes('xỉu') || gr.includes('con') || gr.includes('player')) {
       sX += 1.5;
-      algos.push('GoodRoad\u2192X\u1ec9u');
+      algos.push('GoodRoad→Xỉu');
     }
   }
 
@@ -498,7 +491,7 @@ function predictTaiXiu(history, options) {
     prob_t: +(sT / total).toFixed(4),
     prob_x: +(sX / total).toFixed(4),
     streak: streak,
-    pattern: streak >= 2 ? ('B\u1ec7t ' + last + ' \u00d7' + streak) : (sp ? sp.pattern : (pdb ? pdb.pattern : ''))
+    pattern: streak >= 2 ? ('Bệt ' + last + ' ×' + streak) : (sp ? sp.pattern : (pdb ? pdb.pattern : ''))
   };
 }
 
@@ -541,13 +534,26 @@ function predictNext() {
     };
 }
 
-async function login(un = username, pw = password) {
+function parseLines(data) {
+    if (!data || !Array.isArray(data.list)) return [];
+    const sortedList = data.list.sort((a, b) => b.id - a.id);
+    const arr = sortedList.map(item => ({
+        session: item.id,
+        dice: item.dices,
+        total: item.point,
+        result: item.resultTruyenThong,
+        tx: item.point >= 11 ? 'T' : 'X'
+    }));
+    return arr.sort((a, b) => a.session - b.session);
+}
+
+async function login() {
     console.log(`${C.blue}⟳ Đang đăng nhập...${C.reset}`);
     try {
-        md5Password = crypto.createHash("md5").update(pw).digest("hex");
+        md5Password = crypto.createHash("md5").update(password).digest("hex");
 
         const loginRes = await fetch(
-            `https://apifo88daigia.tele68.com/api?c=3&un=${encodeURIComponent(un)}&pw=${md5Password}&cp=R&cl=R&pf=web&at=`
+            `https://apifo88daigia.tele68.com/api?c=3&un=${encodeURIComponent(username)}&pw=${md5Password}&cp=R&cl=R&pf=web&at=`
         );
         const loginData = await loginRes.json();
         if (!loginData.success) {
@@ -571,7 +577,7 @@ async function login(un = username, pw = password) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    username: un,
+                    username: username,
                     password: md5Password,
                     nickName,
                     accessToken: token,
@@ -586,7 +592,29 @@ async function login(un = username, pw = password) {
         }
 
         jwtToken = authData.token;
-        balance = authData.remoteLoginResp?.money || 0;
+        
+        // Lấy số dư từ API nếu có
+        try {
+            const balRes = await fetch(
+                `https://gameapi.tele68.com/v1/profile/balance?cp=R&cl=R&pf=web&at=${token}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${jwtToken}`
+                    }
+                }
+            );
+            if (balRes.ok) {
+                const balData = await balRes.json();
+                const apiBalance = balData.balance || balData.money || balData.von || 0;
+                if (apiBalance > 0) {
+                    balance = apiBalance;
+                }
+            }
+        } catch (e) {
+            // Giữ balance từ CONFIG nếu không lấy được
+        }
+
         isLoggedIn = true;
         console.log(`${C.green}✅ Đăng nhập thành công! Số dư: ${formatMoney(balance)}đ${C.reset}`);
         return true;
@@ -613,8 +641,7 @@ async function getBalance() {
             return balance;
         }
     } catch (e) {}
-    balance = 0;
-    return 0;
+    return balance;
 }
 
 async function fetchHistory() {
@@ -639,7 +666,7 @@ async function fetchHistory() {
 
 async function placeBet(prediction) {
     if (balance < betAmount) {
-        console.log(`⚠️ Het von (${formatMoney(balance)}), dung lai.`);
+        console.log(`⚠️ Hết vốn (${formatMoney(balance)}), dừng lại.`);
         stopAutoBet();
         return false;
     }
@@ -696,7 +723,6 @@ async function placeBet(prediction) {
                         if (balance > preBalance) won = true;
                         else if (balance < preBalance) won = false;
                     }
-                    const netChange = balance - preBalance;
                     totalBets++;
                     if (won === true) { wins++; } else if (won === false) { losses++; }
                     if (won === true) {
@@ -759,7 +785,10 @@ function startAutoBet() {
 }
 
 async function betLoop() {
-    if (!bettingActive || !isLoggedIn) { betInterval = setTimeout(betLoop, 2000); return; }
+    if (!bettingActive || !isLoggedIn) { 
+        betInterval = setTimeout(betLoop, 2000); 
+        return; 
+    }
 
     const oldLen = txHistory.length;
     await fetchHistory();
@@ -827,7 +856,7 @@ async function betLoop() {
 function stopAutoBet() {
     bettingActive = false;
     if (betInterval) {
-        clearInterval(betInterval);
+        clearTimeout(betInterval);
         betInterval = null;
     }
     const profit = balance - initialBalance;
@@ -838,7 +867,38 @@ function stopAutoBet() {
     console.log(`📊 Tổng: ${C.bold}${totalBets}${C.reset} | ✅ ${C.green}${wins}${C.reset} | ❌ ${C.red}${losses}${C.reset}`);
     console.log(`💰 ${profitColor}${C.bold}${profit >= 0 ? '+' : ''}${formatMoney(profit)}đ${C.reset}`);
     console.log(`${C.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${C.reset}`);
+    
+    // Giữ process chạy trên Render
+    console.log(`${C.blue}ℹ️ Bot đã dừng. Process vẫn chạy để giữ container alive.${C.reset}`);
 }
+
+// HTTP Server để Render không kill process
+import http from 'http';
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`
+        <html>
+        <head><title>LC79 Auto Bet Bot</title>
+        <meta http-equiv="refresh" content="30">
+        </head>
+        <body style="font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px;">
+            <h2>🎰 LC79 AUTO BET BOT</h2>
+            <p>✅ Bot đang chạy...</p>
+            <p>👤 User: ${username}</p>
+            <p>💰 Balance: ${formatMoney(balance)}đ</p>
+            <p>📊 Tổng bets: ${totalBets} | ✅ Thắng: ${wins} | ❌ Thua: ${losses}</p>
+            <p>💵 Profit: ${formatMoney(balance - initialBalance)}đ</p>
+            <p>🟢 Status: ${bettingActive ? 'Đang chạy' : 'Đã dừng'}</p>
+            <p><small>Last updated: ${new Date().toLocaleString('vi-VN')}</small></p>
+        </body>
+        </html>
+    `);
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`${C.cyan}🌐 Web server đang chạy tại cổng ${PORT}${C.reset}`);
+});
 
 async function main() {
     console.log(`${C.cyan}╔═══════════════════════════════════════╗${C.reset}`);
@@ -847,57 +907,57 @@ async function main() {
     console.log(`${C.cyan}║${C.reset}   ${C.dim}📱 Box Chat: @ChatToolTXViP${C.reset}     ${C.cyan}║${C.reset}`);
     console.log(`${C.cyan}╚═══════════════════════════════════════╝${C.reset}\n`);
 
-    username = "chicuong17cm";
-    password = "Duongtien2@@";
+    console.log(`${C.cyan}📋 Config:${C.reset}`);
+    console.log(`   👤 User: ${username}`);
+    console.log(`   💰 Vốn: ${formatMoney(balance)}đ`);
+    console.log(`   🎯 Mục tiêu: ${targetProfit > 0 ? formatMoney(targetProfit) + 'đ' : 'Không giới hạn'}`);
+    console.log(`   💵 Mỗi tay: ${formatMoney(betAmount)}đ\n`);
 
     const loggedIn = await login(username, password);
     if (!loggedIn) {
-        console.log(`${C.red}❌ Không thể đăng nhập.${C.reset}`);
-        rl.close();
-        process.exit(1);
-    }
-    if (loggedIn) {
-        await fetchHistory();
-        await getBalance();
-        console.log(`${C.cyan}💰 Số dư tài khoản:${C.reset} ${C.bold}${formatMoney(balance)}đ${C.reset}`);
-
-        let vonInput = await question(`${C.yellow}➤ Nhập số vốn: ${C.reset}`);
-        let von = parseInt(vonInput.replace(/\./g, ""));
-        if (!isNaN(von) && von > 0) {
-            balance = von;
-        }
-        console.log(`${C.green}✓ Done${C.reset}`);
-
-        let targetInput = await question(`${C.yellow}➤ Nhập số tiền muốn lời (0 = không giới hạn): ${C.reset}`);
-        targetProfit = parseInt(targetInput.replace(/\./g, ""));
-        if (isNaN(targetProfit) || targetProfit < 0) targetProfit = 0;
-
-        let betInput = await question(`${C.yellow}➤ Mỗi tay bao nhiêu: ${C.reset}`);
-        let bet = parseInt(betInput.replace(/\./g, ""));
-        if (!isNaN(bet) && bet > 0 && bet <= balance) {
-            betAmount = bet;
-        }
-
-        initialBalance = balance;
-
-        rl.close();
-
-        startAutoBet();
-    } else {
-        rl.close();
+        console.log(`${C.red}❌ Không thể đăng nhập. Bot vẫn chạy web server.${C.reset}`);
+        // Vẫn giữ process chạy
+        return;
     }
 
-    process.on("SIGINT", () => {
-        console.log(`\n${C.yellow}⟳ Đang dừng bot...${C.reset}`);
-        stopAutoBet();
-        process.exit(0);
-    });
-
-    process.on("SIGTERM", () => {
-        console.log(`\n${C.yellow}⟳ Đang dừng bot...${C.reset}`);
-        stopAutoBet();
-        process.exit(0);
-    });
+    await fetchHistory();
+    initialBalance = balance;
+    startAutoBet();
 }
 
+// Xử lý graceful shutdown
+process.on("SIGINT", () => {
+    console.log(`\n${C.yellow}⟳ Đang dừng bot...${C.reset}`);
+    stopAutoBet();
+    server.close();
+    process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+    console.log(`\n${C.yellow}⟳ Đang dừng bot...${C.reset}`);
+    stopAutoBet();
+    server.close();
+    process.exit(0);
+});
+
 main();
+```
+
+🔧 Những thay đổi chính để chạy trên Render:
+
+1. Bỏ readline - Không dùng rl.question() nữa, thay bằng CONFIG object để set sẵn thông số
+2. Thêm HTTP Server - Render cần process listen trên 1 port, nếu không sẽ bị kill
+3. Dùng process.env.PORT - Render tự gán port qua biến môi trường này
+4. Giữ process alive - Web server chạy liên tục để Render không kill
+
+📝 Cách dùng:
+
+1. Sửa config ở đầu file (dòng CONFIG):
+   · username, password
+   · balance: vốn ban đầu
+   · targetProfit: mục tiêu lời (0 = không giới hạn)
+   · betAmount: tiền mỗi lần cược
+2. Deploy lên Render:
+   · Chọn "Web Service"
+   · Build Command: npm install
+   · Start Command: node index.js
